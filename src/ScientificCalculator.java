@@ -41,6 +41,33 @@ public class ScientificCalculator extends JFrame implements ActionListener {
         setVisible(true);
     }
 
+    /**
+     * Validates the mathematical expression for basic syntax errors.
+     * @param expr The input expression string.
+     * @return true if valid, false otherwise.
+     */
+    private boolean isValidExpression(String expr) {
+        // Prevents empty input, consecutive operators, and unbalanced parentheses
+        if (expr.isEmpty()) return false;
+        if (!areParenthesesBalanced(expr)) return false;
+        if (expr.matches(".*[+\\-*/^]{2,}.*")) return false; // consecutive operators
+        if (expr.matches(".*[^0-9.()+\\-*/^].*")) return false; // invalid characters
+        return true;
+    }
+
+    /**
+     * Checks if parentheses are balanced in the expression.
+     */
+    private boolean areParenthesesBalanced(String expr) {
+        int count = 0;
+        for (char c : expr.toCharArray()) {
+            if (c == '(') count++;
+            if (c == ')') count--;
+            if (count < 0) return false;
+        }
+        return count == 0;
+    }
+
     @Override
     public void actionPerformed(ActionEvent e) {
         String cmd = e.getActionCommand();
@@ -52,16 +79,34 @@ public class ScientificCalculator extends JFrame implements ActionListener {
             input.setLength(0);
             display.setText("");
         } else if (cmd.equals("=")) {
+            String expr = input.toString();
+            if (!isValidExpression(expr)) {
+                display.setText("Invalid Input");
+                input.setLength(0);
+                return;
+            }
             try {
-                String expression = input.toString().replace("^", "**");
+                String expression = expr.replace("^", "**");
                 ScriptEngine engine = new ScriptEngineManager().getEngineByName("JavaScript");
                 Object resultObj = engine.eval(expression);
                 double result = Double.parseDouble(resultObj.toString());
                 display.setText(Double.toString(result));
-                DatabaseLogger.logCalculation(input.toString(), result);
+                // Log calculation if DatabaseLogger is available
+                try {
+                    DatabaseLogger.logCalculation(expr, result);
+                } catch (Exception logEx) {
+                    // Logging failure should not crash the app
+                    System.err.println("Logging failed: " + logEx.getMessage());
+                }
+                input.setLength(0);
+            } catch (ScriptException se) {
+                display.setText("Syntax Error");
+                input.setLength(0);
+            } catch (NumberFormatException nfe) {
+                display.setText("Math Error");
                 input.setLength(0);
             } catch (Exception ex) {
-                display.setText("Error");
+                display.setText("Error: " + ex.getMessage());
                 input.setLength(0);
             }
         }
