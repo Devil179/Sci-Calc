@@ -88,6 +88,11 @@ public class ScientificCalculator extends JFrame implements ActionListener {
             try {
                 String expression = expr.replace("^", "**");
                 ScriptEngine engine = new ScriptEngineManager().getEngineByName("JavaScript");
+                if (engine == null) {
+                    display.setText("No JS Engine");
+                    input.setLength(0);
+                    return;
+                }
                 Object resultObj = engine.eval(expression);
                 double result = Double.parseDouble(resultObj.toString());
                 display.setText(Double.toString(result));
